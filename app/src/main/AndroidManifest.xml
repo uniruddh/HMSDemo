@@ -2,7 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="in.uniruddh.hmsdemo">
 
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.INTERNET" />
+
+
     <application
+        android:name=".MainApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -10,7 +16,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.HMSDemo">
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.MeetingActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.HMSDemo.NoActionBar">
