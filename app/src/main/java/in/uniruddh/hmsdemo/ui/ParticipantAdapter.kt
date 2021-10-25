@@ -2,7 +2,6 @@ package `in`.uniruddh.hmsdemo.ui
 
 import `in`.uniruddh.hmsdemo.data.model.Participant
 import `in`.uniruddh.hmsdemo.databinding.ParticipantListItemBinding
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
@@ -20,13 +19,6 @@ class ParticipantAdapter() : RecyclerView.Adapter<ParticipantViewHolder>() {
         notifyDataSetChanged()
     }
 
-    fun getItem(position: Int): Participant? {
-        if (participantList.isNotEmpty() && position < participantList.size) {
-            return participantList[position]
-        }
-        return null
-    }
-
     override fun getItemCount(): Int {
         return participantList.size
     }
@@ -34,13 +26,12 @@ class ParticipantAdapter() : RecyclerView.Adapter<ParticipantViewHolder>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ParticipantViewHolder {
         val inflater = LayoutInflater.from(parent.context)
         val binding = ParticipantListItemBinding.inflate(inflater, parent, false)
-        return ParticipantViewHolder(binding, ::getItem)
+        return ParticipantViewHolder(binding)
     }
 
     override fun onBindViewHolder(holder: ParticipantViewHolder, position: Int) {
-//        holder.setIsRecyclable(false)
-        getItem(position)?.let {
-            holder.stopSurfaceView()
+        holder.setIsRecyclable(false)
+        participantList[position]?.let {
             holder.bind(it)
         }
     }
@@ -51,7 +42,7 @@ class ParticipantAdapter() : RecyclerView.Adapter<ParticipantViewHolder>() {
     }
 
     override fun onViewDetachedFromWindow(holder: ParticipantViewHolder) {
-        super.onViewDetachedFromWindow(holder)
         holder.stopSurfaceView()
+        super.onViewDetachedFromWindow(holder)
     }
 }

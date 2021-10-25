@@ -64,7 +64,7 @@ class MeetingActivity : AppCompatActivity() {
             )
         )
 
-        viewModel.peerUpdate.observe(this, {
+        viewModel.onPeerUpdated.observe(this, {
             participantAdapter.refreshList(viewModel.participantList)
         })
     }

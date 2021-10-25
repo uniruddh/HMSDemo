@@ -2,7 +2,6 @@ package `in`.uniruddh.hmsdemo.ui
 
 import `in`.uniruddh.hmsdemo.data.model.Participant
 import `in`.uniruddh.hmsdemo.data.repository.TokenRepository
-import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -32,10 +31,8 @@ class MeetingViewModel @Inject constructor(
     private val hmsSdk: HMSSDK
 ) : ViewModel(), HMSAudioListener, HMSUpdateListener {
 
-    private val TAG = MeetingViewModel::class.java.simpleName
-
     var participantList = arrayListOf<Participant>()
-    val peerUpdate = MutableLiveData<Boolean>()
+    val onPeerUpdated = MutableLiveData<Boolean>()
 
     fun getAuthToken() {
         viewModelScope.launch {
@@ -54,14 +51,12 @@ class MeetingViewModel @Inject constructor(
     fun endMeeting() {
         hmsSdk.endRoom("Done", false, object : HMSActionResultListener {
             override fun onError(error: HMSException) {
-                Log.e(TAG, "endRoom onError ${error.description}")
             }
 
             override fun onSuccess() {
-                Log.e(TAG, "endRoom onSuccess")
                 hmsSdk.removeAudioObserver()
                 participantList.clear()
-                peerUpdate.postValue(true)
+                onPeerUpdated.postValue(true)
             }
         })
     }
@@ -88,27 +83,26 @@ class MeetingViewModel @Inject constructor(
     }
 
     override fun onJoin(room: HMSRoom) {
-        Log.e(TAG, "onJoin: $room")
         for (peer in room.peerList) {
             participantList.add(Participant(peer.name, peer, 0))
         }
-        peerUpdate.postValue(true)
+        onPeerUpdated.postValue(true)
     }
 
     override fun onMessageReceived(message: HMSMessage) {
     }
 
     override fun onPeerUpdate(type: HMSPeerUpdate, peer: HMSPeer) {
-        Log.e(TAG, "onPeerUpdate type=$type, peer=$peer")
         when (type) {
             HMSPeerUpdate.PEER_JOINED -> {
                 addParticipant(peer)
+                onPeerUpdated.postValue(true)
             }
             HMSPeerUpdate.PEER_LEFT -> {
                 removeParticipant(peer)
+                onPeerUpdated.postValue(true)
             }
         }
-        peerUpdate.postValue(true)
     }
 
     override fun onRoleChangeRequest(request: HMSRoleChangeRequest) {
@@ -118,7 +112,6 @@ class MeetingViewModel @Inject constructor(
     }
 
     override fun onTrackUpdate(type: HMSTrackUpdate, track: HMSTrack, peer: HMSPeer) {
-        Log.e(TAG, "onTrackUpdate type=$type, peer=$peer")
     }
 
     override fun onAudioLevelUpdate(speakers: Array<HMSSpeaker>) {
@@ -127,18 +120,18 @@ class MeetingViewModel @Inject constructor(
         }
 
         if (speakers.isNotEmpty()) {
+            if (speakers.size > 1) {
+                speakers.sortBy { it.level }
+            }
             val firstParticipant = participantList.firstOrNull()?.name ?: ""
             val topSpeaker = speakers.firstOrNull()?.peer?.name ?: ""
 
-            if (firstParticipant == topSpeaker) {
-                Log.e(TAG, "onAudioLevelUpdate: Do nothing")
-            } else {
-                Log.e(TAG, "onAudioLevelUpdate: Do something")
+            if (firstParticipant != topSpeaker) {
                 participantList.find { it.name == topSpeaker }?.let {
                     participantList.remove(it)
                     participantList.add(0, it)
                 }
-                peerUpdate.postValue(true)
+                onPeerUpdated.postValue(true)
             }
         }
     }

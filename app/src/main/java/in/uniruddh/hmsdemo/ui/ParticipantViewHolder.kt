@@ -1,9 +1,7 @@
 package `in`.uniruddh.hmsdemo.ui
 
-import `in`.uniruddh.hmsdemo.MainApplication
 import `in`.uniruddh.hmsdemo.data.model.Participant
 import `in`.uniruddh.hmsdemo.databinding.ParticipantListItemBinding
-import android.util.Log
 import androidx.recyclerview.widget.RecyclerView
 import live.hms.video.utils.SharedEglContext
 import org.webrtc.RendererCommon
@@ -14,11 +12,11 @@ import org.webrtc.RendererCommon
  * @Email: uniruddh@gmail.com
  */
 class ParticipantViewHolder(
-    private val binding: ParticipantListItemBinding,
-    private val getItem: (Int) -> Participant?
+    private val binding: ParticipantListItemBinding
 ) : RecyclerView.ViewHolder(binding.root) {
 
     private var sinkAdded = false
+    private lateinit var participant: Participant
 
     init {
         binding.previewView.apply {
@@ -28,21 +26,14 @@ class ParticipantViewHolder(
     }
 
     fun bind(participant: Participant) {
+        this.participant = participant
         binding.name.text = participant.name
-        if (!sinkAdded) {
-            binding.previewView.apply {
-                setEnableHardwareScaler(true)
-                setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT)
-                sinkAdded = false
-            }
-        }
     }
 
     fun startSurfaceView() {
         if (!sinkAdded) {
             binding.previewView.apply {
-
-                getItem(adapterPosition)?.hmsPeer?.videoTrack?.let {
+                participant?.hmsPeer?.videoTrack?.let {
                     init(SharedEglContext.context, null)
                     it.addSink(this)
                     sinkAdded = true
@@ -53,8 +44,8 @@ class ParticipantViewHolder(
 
     fun stopSurfaceView() {
         binding.previewView.apply {
-            if (sinkAdded && adapterPosition != -1) {
-                getItem(adapterPosition)?.hmsPeer?.videoTrack?.let {
+            if (sinkAdded) {
+                participant?.hmsPeer?.videoTrack?.let {
                     it.removeSink(this)
                     release()
                     sinkAdded = false
