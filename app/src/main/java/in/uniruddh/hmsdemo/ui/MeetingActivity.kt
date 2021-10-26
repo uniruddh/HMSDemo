@@ -2,10 +2,11 @@ package `in`.uniruddh.hmsdemo.ui
 
 import `in`.uniruddh.hmsdemo.databinding.ActivityMainBinding
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.View
-import androidx.activity.result.contract.ActivityResultContracts
+import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -23,8 +24,8 @@ import dagger.hilt.android.AndroidEntryPoint
 class MeetingActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-
     private val viewModel: MeetingViewModel by viewModels()
+    private lateinit var loader: Loader
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,11 +35,10 @@ class MeetingActivity : AppCompatActivity() {
         binding.lifecycleOwner = this
         binding.viewModel = viewModel
 
+        loader = Loader(this)
+
         binding.startMeetButton.setOnClickListener {
             viewModel.getAuthToken()
-
-            binding.startMeetButton.visibility = View.GONE
-            binding.endMeetButton.visibility = View.VISIBLE
         }
 
         binding.endMeetButton.setOnClickListener {
@@ -48,9 +48,58 @@ class MeetingActivity : AppCompatActivity() {
             binding.endMeetButton.visibility = View.GONE
         }
 
-        requestCameraPermission()
-        requestMicPermission()
+        val sharedPreferences = getPreferences(Context.MODE_PRIVATE)
+        viewModel.userId.value = sharedPreferences.getString("HOST_ID", "")
+        viewModel.role.value = sharedPreferences.getString("ROLE", "")
+        viewModel.roomId.value = sharedPreferences.getString("ROOM_ID", "")
+        viewModel.accessKey.value = sharedPreferences.getString("ACCESS_KEY", "")
+
+        viewModel.onTokenRequested.observe(this, {
+            when (it) {
+                "SHOW" -> {
+                    loader.show()
+                }
+                "HIDE" -> {
+                    loader.dismiss()
+                    binding.startMeetButton.visibility = View.GONE
+                    binding.endMeetButton.visibility = View.VISIBLE
+
+                    with(sharedPreferences.edit()) {
+                        putString("HOST_ID", viewModel.userId.value)
+                        putString("ROLE", viewModel.role.value)
+                        putString("ROOM_ID", viewModel.roomId.value)
+                        putString("ACCESS_KEY", viewModel.accessKey.value)
+                        apply()
+                    }
+                }
+                "ERROR" -> {
+                    Toast.makeText(this, "Please enter valid details", Toast.LENGTH_SHORT).show()
+                }
+            }
+        })
         setupAdapter()
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.CAMERA
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), 0)
+        } else if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.RECORD_AUDIO
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.RECORD_AUDIO),
+                0
+            )
+        }
     }
 
     private fun setupAdapter() {
@@ -67,55 +116,6 @@ class MeetingActivity : AppCompatActivity() {
         viewModel.onPeerUpdated.observe(this, {
             participantAdapter.refreshList(viewModel.participantList)
         })
-    }
-
-    private fun requestCameraPermission() {
-        when {
-            ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.CAMERA
-            ) == PackageManager.PERMISSION_GRANTED -> {
-
-            }
-
-            ActivityCompat.shouldShowRequestPermissionRationale(
-                this,
-                Manifest.permission.CAMERA
-            ) -> {
-
-            }
-
-            else -> {
-
-                registerForActivityResult(ActivityResultContracts.RequestPermission()) {}.launch(
-                    Manifest.permission.CAMERA
-                )
-            }
-        }
-    }
-
-    private fun requestMicPermission() {
-        when {
-            ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.RECORD_AUDIO
-            ) == PackageManager.PERMISSION_GRANTED -> {
-
-            }
-
-            ActivityCompat.shouldShowRequestPermissionRationale(
-                this,
-                Manifest.permission.RECORD_AUDIO
-            ) -> {
-
-            }
-
-            else -> {
-                registerForActivityResult(ActivityResultContracts.RequestPermission()) {}.launch(
-                    Manifest.permission.RECORD_AUDIO
-                )
-            }
-        }
     }
 
 }

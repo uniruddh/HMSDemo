@@ -1,6 +1,7 @@
 package `in`.uniruddh.hmsdemo.ui
 
 import `in`.uniruddh.hmsdemo.data.model.Participant
+import `in`.uniruddh.hmsdemo.data.model.TokenRequest
 import `in`.uniruddh.hmsdemo.data.repository.TokenRepository
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -33,12 +34,31 @@ class MeetingViewModel @Inject constructor(
 
     var participantList = arrayListOf<Participant>()
     val onPeerUpdated = MutableLiveData<Boolean>()
+    val onTokenRequested = MutableLiveData<String>()
+
+    val roomId = MutableLiveData<String>()
+    val accessKey = MutableLiveData<String>()
+    val role = MutableLiveData<String>()
+    val userId = MutableLiveData<String>()
+
 
     fun getAuthToken() {
         viewModelScope.launch {
-            tokenRepository.getAuthToken()?.let {
-                val hmsConfig = HMSConfig(it.userId, it.authToken)
-                startMeeting(hmsConfig)
+            if (roomId.value.isNullOrBlank() ||
+                userId.value.isNullOrBlank() ||
+                role.value.isNullOrBlank() ||
+                accessKey.value.isNullOrBlank()
+            ) {
+                onTokenRequested.postValue("ERROR")
+            } else {
+                onTokenRequested.postValue("SHOW")
+                val tokenRequest = TokenRequest(
+                    roomId.value!!, userId.value!!, role.value!!, accessKey.value!!
+                )
+                tokenRepository.getAuthToken(tokenRequest)?.let {
+                    val hmsConfig = HMSConfig(it.userId, it.authToken)
+                    startMeeting(hmsConfig)
+                }
             }
         }
     }
@@ -56,7 +76,7 @@ class MeetingViewModel @Inject constructor(
             override fun onSuccess() {
                 hmsSdk.removeAudioObserver()
                 participantList.clear()
-                onPeerUpdated.postValue(true)
+                onPeerUpdated.postValue(false)
             }
         })
     }
@@ -87,6 +107,7 @@ class MeetingViewModel @Inject constructor(
             participantList.add(Participant(peer.name, peer, 0))
         }
         onPeerUpdated.postValue(true)
+        onTokenRequested.postValue("HIDE")
     }
 
     override fun onMessageReceived(message: HMSMessage) {

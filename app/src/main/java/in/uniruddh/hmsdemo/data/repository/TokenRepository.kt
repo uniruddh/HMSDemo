@@ -36,9 +36,8 @@ class TokenRepository @Inject constructor(
 
     private val tokenResponseAdapter = moshi.adapter(TokenResponse::class.java)
 
-    suspend fun getAuthToken() : RoomDetail? = withContext(Dispatchers.IO) {
+    suspend fun getAuthToken(tokenRequest: TokenRequest) : RoomDetail? = withContext(Dispatchers.IO) {
 
-        val tokenRequest = TokenRequest()
         val tokenReqBody = tokenRequestAdapter.toJson(tokenRequest)
             .toRequestBody(APIConstant.CONTENT_TYPE_JSON.toMediaType())
 
